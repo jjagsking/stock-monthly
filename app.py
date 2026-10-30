@@ -55,14 +55,14 @@ def get_one(ticker, months):
         try:
             return ticker, fred_rates(months), "FRED DEXKOUS (달러당 원화 월말 관측치)"
         except Exception as e:
-            return ticker, [None]*6, f"FRED 조회 실패: {str(e)[:70]}"
+            return ticker, [None]*len(months), f"FRED 조회 실패: {str(e)[:70]}"
     if ticker == "^KS200":
         try:
             import FinanceDataReader as fdr
             df = fdr.DataReader("KS200", start, end)
             return ticker, monthly_rates(df, months), "FinanceDataReader KS200"
         except Exception as e:
-            return ticker, [None]*6, f"KS200 조회 실패: {str(e)[:70]}"
+            return ticker, [None]*len(months), f"KS200 조회 실패: {str(e)[:70]}"
     try:
         df = yf.Ticker(ticker).history(start=start, end=end, interval="1mo",
                                       auto_adjust=False, actions=False, raise_errors=False)
@@ -74,7 +74,7 @@ def get_one(ticker, months):
             vals = [v if v is not None else fallback[i] for i, v in enumerate(vals)]
         return ticker, vals, "Yahoo Finance"
     except Exception as e:
-        return ticker, [None]*6, f"조회 실패: {str(e)[:70]}"
+        return ticker, [None]*len(months), f"조회 실패: {str(e)[:70]}"
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch(year, month):
@@ -133,7 +133,7 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
         selected(r) is None, -(selected(r) if selected(r) is not None else 0)))
     available = sum(selected(r) is not None for r in ordered)
     st.caption(f"{yy}년 {mm}월 기준 · {len(ordered)}개 종목 중 {available}개 수익률 조회")
-    st.caption("월 제목을 누르면 해당 월 수익률순으로 정렬됩니다. 마지막 열은 전월 수익률입니다.")
+    st.caption("기본 20개는 고정, 추가 131개만 월 제목 클릭 시 정렬됩니다. 마지막 열은 전월 수익률입니다.")
     style = """
     <style>
     body{margin:0;font-family:system-ui,-apple-system,sans-serif}
@@ -175,12 +175,13 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     <script>
     const tbody = document.querySelector('#assets tbody');
     const original = Array.from(tbody.rows);
-    let currentCol = 0;
+    const fixedRows = original.slice(0, 20); // 기본 20개는 언제나 원래 순서 유지
+    let currentCol = -1;
     let descending = true;
     function sortByMonth(col) {
       if (currentCol === col) descending = !descending;
       else { currentCol = col; descending = true; }
-      const rows = Array.from(tbody.rows);
+      const rows = Array.from(tbody.rows).filter(row => !fixedRows.includes(row));
       rows.sort((a,b) => {
         const x = JSON.parse(a.dataset.rates)[col];
         const y = JSON.parse(b.dataset.rates)[col];
@@ -189,7 +190,7 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
         if (y === null) return -1;
         return descending ? y-x : x-y;
       });
-      tbody.replaceChildren(...rows);
+      tbody.replaceChildren(...fixedRows, ...rows);
       document.querySelectorAll('th[data-month]').forEach(h => {
         const i = Number(h.dataset.month);
         const d = h.textContent.replace(/[▼▲↕]/g,'').trim();
@@ -200,7 +201,7 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     </script>
     """
     components.html(
-        style + '<div class="hint">월 제목을 누르면 내림차순 / 오름차순으로 바뀝니다.</div>'
+        style + '<div class="hint">월 제목을 누르면 추가 131개만 내림차순 / 오름차순으로 바뀝니다.</div>'
         + '<div class="asset-scroll"><table id="assets" class="asset-table"><thead><tr>'
         '<th class="ticker">티커</th><th class="name">종목명</th>'
         + headers + '</tr></thead><tbody>' + ''.join(html_rows)
@@ -216,7 +217,8 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
                 st.text(f"{ticker}: {note if note != 'Yahoo Finance' else '상장 전 또는 데이터 없음'}")
     columns = [f"{m.year}-{m.month:02d} 등락률(%)" for m in months]
     export = pd.DataFrame([{"티커":ticker, "종목명":name,
-                            **{columns[i]: rates[i] for i in range(7)}, "데이터 출처":note}
+                            **{columns[i]: rates[i] for i in range(len(months))},
+                            "전월 등락률(%)": rates[6], "데이터 출처":note}
                            for ticker, name, rates, note in ordered])
     st.download_button("6개월 + 전월 CSV 다운로드", export.to_csv(index=False).encode("utf-8-sig"),
                        file_name=f"monthly_{yy}_{mm:02d}_6months_plus_previous.csv",
