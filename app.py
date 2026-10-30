@@ -14,109 +14,171 @@ print(f"기본 {len(BASE)}개 + 상승률 정렬 {len(EXTRA)}개 = 총 {len(BASE
 BASE = [("GLD", "금(GLD ETF)") if t == "GC=F" else (t, n) for t, n in BASE]
 ALL = BASE + EXTRA
 
-def month_closes(df, prev, cur):
+
+def monthly_rates(df, months):
     if df is None or df.empty or "Close" not in df:
-        return None
+        return [None] * len(months)
     s = pd.to_numeric(df["Close"], errors="coerce").dropna()
     if s.empty:
-        return None
+        return [None] * len(months)
     idx = pd.DatetimeIndex(s.index)
     if idx.tz is not None:
         idx = idx.tz_localize(None)
     s.index = idx.to_period("M")
     s = s.groupby(level=0).last()
-    p, c = prev.to_period("M"), cur.to_period("M")
-    if p not in s.index or c not in s.index or s[p] <= 0:
-        return None
-    return (float(s[c]) / float(s[p]) - 1) * 100
+    out = []
+    for m in months:
+        p, c = (m - pd.DateOffset(months=1)).to_period("M"), m.to_period("M")
+        out.append((float(s[c]) / float(s[p]) - 1) * 100
+                   if p in s.index and c in s.index and s[p] > 0 else None)
+    return out
 
-def get_one(ticker, prev, cur):
-    end = (cur + pd.DateOffset(months=1)).strftime("%Y-%m-%d")
-    start = prev.strftime("%Y-%m-%d")
+def fred_rates(months):
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXKOUS"
+    fx = pd.read_csv(url, parse_dates=["observation_date"], na_values=["."])
+    fx = fx.set_index("observation_date")["DEXKOUS"]
+    fx = pd.to_numeric(fx, errors="coerce").dropna()
+    s = fx.groupby(fx.index.to_period("M")).last()
+    out = []
+    for m in months:
+        p, c = (m - pd.DateOffset(months=1)).to_period("M"), m.to_period("M")
+        out.append((float(s[c]) / float(s[p]) - 1) * 100
+                   if p in s.index and c in s.index and s[p] > 0 else None)
+    return out
+
+def get_one(ticker, months):
+    first = months[0] - pd.DateOffset(months=1)
+    last = months[-1] + pd.DateOffset(months=1)
+    start, end = first.strftime("%Y-%m-%d"), last.strftime("%Y-%m-%d")
+    if ticker == "KRW=X":
+        try:
+            return ticker, fred_rates(months), "FRED DEXKOUS (달러당 원화 월말 관측치)"
+        except Exception as e:
+            return ticker, [None]*6, f"FRED 조회 실패: {str(e)[:70]}"
     if ticker == "^KS200":
         try:
             import FinanceDataReader as fdr
             df = fdr.DataReader("KS200", start, end)
-            r = month_closes(df, prev, cur)
-            return ticker, r, "KRX/FinanceDataReader" if r is not None else "코스피200 데이터 없음"
+            return ticker, monthly_rates(df, months), "FinanceDataReader KS200"
         except Exception as e:
-            return ticker, None, f"코스피200 조회 실패: {str(e)[:60]}"
+            return ticker, [None]*6, f"KS200 조회 실패: {str(e)[:70]}"
     try:
-        # 달러는 일봉 마지막 종가를 사용해 월봉 집계 차이를 회피.
-        interval = "1d" if ticker == "KRW=X" else "1mo"
-        df = yf.Ticker(ticker).history(start=start, end=end, interval=interval,
+        df = yf.Ticker(ticker).history(start=start, end=end, interval="1mo",
                                       auto_adjust=False, actions=False, raise_errors=False)
-        r = month_closes(df, prev, cur)
-        if r is None and interval == "1mo":
-            df = yf.Ticker(ticker).history(start=start, end=end, interval="1d",
-                                          auto_adjust=False, actions=False, raise_errors=False)
-            r = month_closes(df, prev, cur)
-        return ticker, r, "Yahoo Finance" if r is not None else "상장 전 또는 데이터 없음"
+        vals = monthly_rates(df, months)
+        if any(v is None for v in vals):
+            daily = yf.Ticker(ticker).history(start=start, end=end, interval="1d",
+                                             auto_adjust=False, actions=False, raise_errors=False)
+            fallback = monthly_rates(daily, months)
+            vals = [v if v is not None else fallback[i] for i, v in enumerate(vals)]
+        return ticker, vals, "Yahoo Finance"
     except Exception as e:
-        return ticker, None, f"조회 실패: {str(e)[:60]}"
+        return ticker, [None]*6, f"조회 실패: {str(e)[:70]}"
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch(year, month):
-    cur = pd.Timestamp(year, month, 1)
-    prev = cur - pd.DateOffset(months=1)
-    result = {}
+    months = [pd.Timestamp(year, month, 1) + pd.DateOffset(months=i) for i in range(6)]
+    results = {}
     with ThreadPoolExecutor(max_workers=8) as pool:
-        tasks = {pool.submit(get_one, t, prev, cur): t for t, _ in ALL}
-        for future in as_completed(tasks):
-            t = tasks[future]
+        jobs = {pool.submit(get_one, ticker, months): ticker for ticker, _ in ALL}
+        for job in as_completed(jobs):
+            ticker = jobs[job]
             try:
-                _, r, note = future.result()
+                _, values, note = job.result()
             except Exception as e:
-                r, note = None, f"조회 실패: {str(e)[:60]}"
-            result[t] = (r, note)
-    return result
+                values, note = [None]*6, f"조회 실패: {str(e)[:70]}"
+            results[ticker] = (values, note)
+    return months, results
 
 st.title("📈 월간 주식 등락률")
-st.caption("기존 20개 고정 순서 · 추가 131개 상승률순 · 월말 종가 기준")
-c1, c2 = st.columns(2)
-with c1:
-    year = st.number_input("연도", min_value=1990, max_value=date.today().year, value=2013, step=1)
-with c2:
-    month = st.selectbox("월", list(range(1, 13)), index=7, format_func=lambda x: f"{x}월")
-if st.button("조회", type="primary", use_container_width=True):
-    st.session_state["requested"] = (int(year), int(month))
+st.caption("기본 20개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 비교")
 
-if "requested" in st.session_state:
-    yy, mm = st.session_state["requested"]
-    with st.spinner(f"{yy}년 {mm}월 전체 종목 조회 중..."):
-        values = fetch(yy, mm)
-    rows = [(t, n, *values.get(t, (None, "데이터 없음"))) for t, n in ALL]
-    main = rows[:len(BASE)]
-    additional = sorted(rows[len(BASE):], key=lambda r: (r[2] is None, -(r[2] or 0)))
-    ordered = main + additional
-    ok = sum(r[2] is not None for r in ordered)
-    st.caption(f"{yy}년 {mm}월 · {len(ordered)}종목 중 {ok}개 조회")
-    st.markdown("""
-<style>
-.asset-row{display:flex;align-items:center;justify-content:space-between;
-border-radius:8px;padding:10px 12px;margin:3px 0;gap:8px;font-size:14px}
-.asset-name{min-width:0;overflow-wrap:anywhere}
-.asset-value{font-weight:700;white-space:nowrap}
-.asset-up{background:#fff0f0;color:#c62828}
-.asset-down{background:#edf4ff;color:#1565c0}
-.asset-flat{background:#f5f5f5;color:#666}
-</style>
-""", unsafe_allow_html=True)
-    output = []
-    for ticker, name, rate, note in ordered:
-        css = "asset-flat" if rate is None or rate == 0 else ("asset-up" if rate > 0 else "asset-down")
-        display = "—" if rate is None else f"{rate:+.1f}%"
-        output.append(f'<div class="asset-row {css}"><span class="asset-name">'
-                      f'{html.escape(ticker)}　{html.escape(name)}</span>'
-                      f'<span class="asset-value">{display}</span></div>')
-    st.markdown("".join(output), unsafe_allow_html=True)
-    failed = [(t, note) for t, _, r, note in ordered if r is None]
-    if failed:
-        with st.expander(f"미조회 종목 및 사유 ({len(failed)}개)"):
-            for t, note in failed:
-                st.text(f"{t}: {note}")
-    csv = pd.DataFrame([{"티커":t, "종목명":n, "등락률(%)":r, "상태":note}
-                        for t,n,r,note in ordered]).to_csv(index=False).encode("utf-8-sig")
-    st.download_button("CSV 저장", csv, file_name=f"monthly_{yy}_{mm:02d}.csv",
+# 연월을 주소에 보존합니다. 재방문 시 같은 주소를 열면 선택값이 유지됩니다.
+def valid_date(y, m):
+    try:
+        return 1990 <= int(y) <= date.today().year and 1 <= int(m) <= 12
+    except (ValueError, TypeError):
+        return False
+
+qp_y, qp_m = st.query_params.get("year"), st.query_params.get("month")
+if valid_date(qp_y, qp_m):
+    default_y, default_m = int(qp_y), int(qp_m)
+else:
+    default_y, default_m = 2013, 8
+
+with st.form("month_form"):
+    c1, c2 = st.columns(2)
+    with c1:
+        year = st.number_input("연도", min_value=1990, max_value=date.today().year,
+                               value=default_y, step=1)
+    with c2:
+        month = st.selectbox("월", list(range(1, 13)), index=default_m - 1,
+                             format_func=lambda x: f"{x}월")
+    submit = st.form_submit_button("6개월 조회", type="primary", use_container_width=True)
+
+if submit:
+    st.query_params["year"] = str(int(year))
+    st.query_params["month"] = str(int(month))
+
+if submit or valid_date(st.query_params.get("year"), st.query_params.get("month")):
+    yy, mm = int(st.query_params["year"]), int(st.query_params["month"])
+    with st.spinner(f"{yy}년 {mm}월부터 6개월 조회 중..."):
+        months, values = fetch(yy, mm)
+    rows = [(ticker, name, *values.get(ticker, ([None]*6, "데이터 없음")))
+            for ticker, name in ALL]
+    selected = lambda row: row[2][0]
+    ordered = rows[:len(BASE)] + sorted(rows[len(BASE):], key=lambda r: (
+        selected(r) is None, -(selected(r) if selected(r) is not None else 0)))
+    available = sum(selected(r) is not None for r in ordered)
+    st.caption(f"{yy}년 {mm}월 기준 · {len(ordered)}개 종목 중 {available}개 수익률 조회")
+    st.caption("좌우로 밀면 다음 월이 보입니다. 선택 월 기준으로 정렬·행 배경색이 결정됩니다.")
+    style = """
+    <style>
+    .asset-scroll{width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid #ddd;border-radius:8px}
+    .asset-table{border-collapse:separate;border-spacing:0;min-width:690px;width:max-content;font-size:12px;line-height:1.35}
+    .asset-table th,.asset-table td{padding:9px 6px;border-bottom:1px solid rgba(100,100,100,.12);white-space:nowrap;text-align:right}
+    .asset-table th{background:#f0f1f4;color:#222;position:sticky;top:0;z-index:3}
+    .asset-table .ticker{position:sticky;left:0;text-align:left;min-width:74px;width:74px;max-width:74px;z-index:2;font-weight:600}
+    .asset-table .name{position:sticky;left:74px;text-align:left;min-width:104px;width:104px;max-width:104px;overflow:hidden;text-overflow:ellipsis;z-index:2}
+    .asset-table th.ticker,.asset-table th.name{z-index:4;background:#f0f1f4}
+    .asset-table td.month{min-width:77px;width:77px;font-variant-numeric:tabular-nums;font-weight:650}
+    .asset-table .up{color:#c62828}.asset-table .down{color:#1565c0}.asset-table .zero{color:#555}
+    .asset-table tr.positive td{background:#fff0f0}.asset-table tr.negative td{background:#edf4ff}
+    .asset-table tr.neutral td{background:#f6f6f6}
+    .asset-table th.selected{background:#e3e5ea}
+    </style>
+    """
+    headers = ''.join(f'<th class="{ "selected" if i == 0 else ""}">{m.year}년 {m.month}월</th>'
+                      for i, m in enumerate(months))
+    html_rows = []
+    for ticker, name, rates, note in ordered:
+        base = rates[0]
+        row_class = "neutral" if base is None or base == 0 else ("positive" if base > 0 else "negative")
+        cells = []
+        for rate in rates:
+            cl = "zero" if rate is None or rate == 0 else ("up" if rate > 0 else "down")
+            value = "—" if rate is None else f"{rate:+.1f}%"
+            cells.append(f'<td class="month {cl}">{value}</td>')
+        html_rows.append(f'<tr class="{row_class}"><td class="ticker">{html.escape(ticker)}</td>'
+                         f'<td class="name" title="{html.escape(name, quote=True)}">{html.escape(name)}</td>'
+                         + ''.join(cells) + '</tr>')
+    st.markdown(style + '<div class="asset-scroll"><table class="asset-table"><thead><tr>'
+                '<th class="ticker">티커</th><th class="name">종목명</th>' + headers + '</tr></thead><tbody>'
+                + ''.join(html_rows) + '</tbody></table></div>', unsafe_allow_html=True)
+    fx = values.get("KRW=X", ([None]*6, "조회 실패"))
+    st.caption("달러/원: " + fx[1])
+    missing = [(ticker, note) for ticker, _, rates, note in ordered if rates[0] is None]
+    if missing:
+        with st.expander(f"선택 월 미조회 종목 ({len(missing)}개)"):
+            for ticker, note in missing:
+                st.text(f"{ticker}: {note if note != 'Yahoo Finance' else '상장 전 또는 데이터 없음'}")
+    columns = [f"{m.year}-{m.month:02d} 등락률(%)" for m in months]
+    export = pd.DataFrame([{"티커":ticker, "종목명":name,
+                            **{columns[i]: rates[i] for i in range(6)}, "데이터 출처":note}
+                           for ticker, name, rates, note in ordered])
+    st.download_button("6개월 CSV 다운로드", export.to_csv(index=False).encode("utf-8-sig"),
+                       file_name=f"monthly_{yy}_{mm:02d}_6months.csv",
                        mime="text/csv", use_container_width=True)
-st.caption("금은 GLD 달러 기준 ETF(환율 미반영), 달러는 KRW=X 일봉 종가, 코스피200은 KRX KS200 사용. 게임 수치는 반영하지 않습니다.")
+
+st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
+st.caption("달러/원: FRED DEXKOUS · 코스피200: FinanceDataReader KS200 · 금: GLD ETF(달러 기준)")
