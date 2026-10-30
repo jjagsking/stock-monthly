@@ -5,6 +5,7 @@ from datetime import date
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import html
 import warnings
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="월간 주식 등락률", page_icon="📈", layout="centered")
 BASE = [('AAPL', '애플'), ('MSFT', '마이크로소프트'), ('NVDA', '엔비디아'), ('AMZN', '아마존'), ('GOOGL', '알파벳'), ('META', '메타'), ('TSLA', '테슬라'), ('NFLX', '넷플릭스'), ('AMD', 'AMD'), ('INTC', '인텔'), ('AVGO', '브로드컴'), ('QCOM', '퀄컴'), ('^KS200', '코스피200'), ('^NDX', '나스닥100'), ('^GSPC', 'S&P500'), ('^DJI', '다우존스'), ('GC=F', '금 선물'), ('KRW=X', '달러/원 환율'), ('005930.KS', '삼성전자'), ('000660.KS', 'SK하이닉스')]
@@ -47,8 +48,8 @@ def fred_rates(months):
     return out
 
 def get_one(ticker, months):
-    first = months[0] - pd.DateOffset(months=1)
-    last = months[-1] + pd.DateOffset(months=1)
+    first = min(months) - pd.DateOffset(months=1)
+    last = max(months) + pd.DateOffset(months=1)
     start, end = first.strftime("%Y-%m-%d"), last.strftime("%Y-%m-%d")
     if ticker == "KRW=X":
         try:
@@ -78,20 +79,21 @@ def get_one(ticker, months):
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch(year, month):
     months = [pd.Timestamp(year, month, 1) + pd.DateOffset(months=i) for i in range(6)]
+    display_months = months + [months[0] - pd.DateOffset(months=1)]
     results = {}
     with ThreadPoolExecutor(max_workers=8) as pool:
-        jobs = {pool.submit(get_one, ticker, months): ticker for ticker, _ in ALL}
+        jobs = {pool.submit(get_one, ticker, display_months): ticker for ticker, _ in ALL}
         for job in as_completed(jobs):
             ticker = jobs[job]
             try:
                 _, values, note = job.result()
             except Exception as e:
-                values, note = [None]*6, f"조회 실패: {str(e)[:70]}"
+                values, note = [None]*7, f"조회 실패: {str(e)[:70]}"
             results[ticker] = (values, note)
-    return months, results
+    return display_months, results
 
 st.title("📈 월간 주식 등락률")
-st.caption("기본 20개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 비교")
+st.caption("기본 20개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 + 전월 비교")
 
 # 연월을 주소에 보존합니다. 재방문 시 같은 주소를 열면 선택값이 유지됩니다.
 def valid_date(y, m):
@@ -124,20 +126,22 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     yy, mm = int(st.query_params["year"]), int(st.query_params["month"])
     with st.spinner(f"{yy}년 {mm}월부터 6개월 조회 중..."):
         months, values = fetch(yy, mm)
-    rows = [(ticker, name, *values.get(ticker, ([None]*6, "데이터 없음")))
+    rows = [(ticker, name, *values.get(ticker, ([None]*7, "데이터 없음")))
             for ticker, name in ALL]
     selected = lambda row: row[2][0]
     ordered = rows[:len(BASE)] + sorted(rows[len(BASE):], key=lambda r: (
         selected(r) is None, -(selected(r) if selected(r) is not None else 0)))
     available = sum(selected(r) is not None for r in ordered)
     st.caption(f"{yy}년 {mm}월 기준 · {len(ordered)}개 종목 중 {available}개 수익률 조회")
-    st.caption("좌우로 밀면 다음 월이 보입니다. 선택 월 기준으로 정렬·행 배경색이 결정됩니다.")
+    st.caption("월 제목을 누르면 해당 월 수익률순으로 정렬됩니다. 마지막 열은 전월 수익률입니다.")
     style = """
     <style>
-    .asset-scroll{width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid #ddd;border-radius:8px}
-    .asset-table{border-collapse:separate;border-spacing:0;min-width:690px;width:max-content;font-size:12px;line-height:1.35}
+    body{margin:0;font-family:system-ui,-apple-system,sans-serif}
+    .asset-scroll{width:100%;height:650px;overflow:auto;border:1px solid #ddd;border-radius:8px}
+    .asset-table{border-collapse:separate;border-spacing:0;min-width:760px;width:max-content;font-size:12px;line-height:1.35}
     .asset-table th,.asset-table td{padding:9px 6px;border-bottom:1px solid rgba(100,100,100,.12);white-space:nowrap;text-align:right}
-    .asset-table th{background:#f0f1f4;color:#222;position:sticky;top:0;z-index:3}
+    .asset-table th{background:#f0f1f4;color:#222;position:sticky;top:0;z-index:3;cursor:pointer;user-select:none}
+    .asset-table th:hover{background:#dbe4f3}
     .asset-table .ticker{position:sticky;left:0;text-align:left;min-width:74px;width:74px;max-width:74px;z-index:2;font-weight:600}
     .asset-table .name{position:sticky;left:74px;text-align:left;min-width:104px;width:104px;max-width:104px;overflow:hidden;text-overflow:ellipsis;z-index:2}
     .asset-table th.ticker,.asset-table th.name{z-index:4;background:#f0f1f4}
@@ -145,11 +149,14 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     .asset-table .up{color:#c62828}.asset-table .down{color:#1565c0}.asset-table .zero{color:#555}
     .asset-table tr.positive td{background:#fff0f0}.asset-table tr.negative td{background:#edf4ff}
     .asset-table tr.neutral td{background:#f6f6f6}
-    .asset-table th.selected{background:#e3e5ea}
+    .asset-table th.selected{background:#d7e1f0}
+    .hint{font-size:11px;color:#777;padding:4px 0 7px}
     </style>
     """
-    headers = ''.join(f'<th class="{ "selected" if i == 0 else ""}">{m.year}년 {m.month}월</th>'
-                      for i, m in enumerate(months))
+    headers = ''.join(
+        f'<th class="{ "selected" if i == 0 else ""}" onclick="sortByMonth({i})" data-month="{i}">'
+        f'{m.year}년 {m.month}월 {"▼" if i == 0 else "↕"}</th>'
+        for i, m in enumerate(months))
     html_rows = []
     for ticker, name, rates, note in ordered:
         base = rates[0]
@@ -159,13 +166,48 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
             cl = "zero" if rate is None or rate == 0 else ("up" if rate > 0 else "down")
             value = "—" if rate is None else f"{rate:+.1f}%"
             cells.append(f'<td class="month {cl}">{value}</td>')
-        html_rows.append(f'<tr class="{row_class}"><td class="ticker">{html.escape(ticker)}</td>'
-                         f'<td class="name" title="{html.escape(name, quote=True)}">{html.escape(name)}</td>'
-                         + ''.join(cells) + '</tr>')
-    st.markdown(style + '<div class="asset-scroll"><table class="asset-table"><thead><tr>'
-                '<th class="ticker">티커</th><th class="name">종목명</th>' + headers + '</tr></thead><tbody>'
-                + ''.join(html_rows) + '</tbody></table></div>', unsafe_allow_html=True)
-    fx = values.get("KRW=X", ([None]*6, "조회 실패"))
+        data = ','.join('null' if rate is None else str(round(rate, 8)) for rate in rates)
+        html_rows.append(
+            f'<tr class="{row_class}" data-rates="[{data}]"><td class="ticker">{html.escape(ticker)}</td>'
+            f'<td class="name" title="{html.escape(name, quote=True)}">{html.escape(name)}</td>'
+            + ''.join(cells) + '</tr>')
+    javascript = """
+    <script>
+    const tbody = document.querySelector('#assets tbody');
+    const original = Array.from(tbody.rows);
+    let currentCol = 0;
+    let descending = true;
+    function sortByMonth(col) {
+      if (currentCol === col) descending = !descending;
+      else { currentCol = col; descending = true; }
+      const rows = Array.from(tbody.rows);
+      rows.sort((a,b) => {
+        const x = JSON.parse(a.dataset.rates)[col];
+        const y = JSON.parse(b.dataset.rates)[col];
+        if (x === null && y === null) return original.indexOf(a)-original.indexOf(b);
+        if (x === null) return 1;
+        if (y === null) return -1;
+        return descending ? y-x : x-y;
+      });
+      tbody.replaceChildren(...rows);
+      document.querySelectorAll('th[data-month]').forEach(h => {
+        const i = Number(h.dataset.month);
+        const d = h.textContent.replace(/[▼▲↕]/g,'').trim();
+        h.textContent = d + (i === col ? (descending ? ' ▼' : ' ▲') : ' ↕');
+        h.classList.toggle('selected',i === col);
+      });
+    }
+    </script>
+    """
+    components.html(
+        style + '<div class="hint">월 제목을 누르면 내림차순 / 오름차순으로 바뀝니다.</div>'
+        + '<div class="asset-scroll"><table id="assets" class="asset-table"><thead><tr>'
+        '<th class="ticker">티커</th><th class="name">종목명</th>'
+        + headers + '</tr></thead><tbody>' + ''.join(html_rows)
+        + '</tbody></table></div>' + javascript,
+        height=690, scrolling=False
+    )
+    fx = values.get("KRW=X", ([None]*7, "조회 실패"))
     st.caption("달러/원: " + fx[1])
     missing = [(ticker, note) for ticker, _, rates, note in ordered if rates[0] is None]
     if missing:
@@ -174,10 +216,10 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
                 st.text(f"{ticker}: {note if note != 'Yahoo Finance' else '상장 전 또는 데이터 없음'}")
     columns = [f"{m.year}-{m.month:02d} 등락률(%)" for m in months]
     export = pd.DataFrame([{"티커":ticker, "종목명":name,
-                            **{columns[i]: rates[i] for i in range(6)}, "데이터 출처":note}
+                            **{columns[i]: rates[i] for i in range(7)}, "데이터 출처":note}
                            for ticker, name, rates, note in ordered])
-    st.download_button("6개월 CSV 다운로드", export.to_csv(index=False).encode("utf-8-sig"),
-                       file_name=f"monthly_{yy}_{mm:02d}_6months.csv",
+    st.download_button("6개월 + 전월 CSV 다운로드", export.to_csv(index=False).encode("utf-8-sig"),
+                       file_name=f"monthly_{yy}_{mm:02d}_6months_plus_previous.csv",
                        mime="text/csv", use_container_width=True)
 
 st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
