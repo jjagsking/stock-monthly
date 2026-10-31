@@ -16,6 +16,52 @@ BASE = [("GLD", "금(GLD ETF)") if t == "GC=F" else (t, n) for t, n in BASE]
 BASE.append(("BTC-USD", "비트코인"))
 ALL = BASE + EXTRA
 
+# 사용자 제공 금 월별 상/하 기록. 00.10은 2000년 10월부터 시작합니다.
+# 글자 하나가 해당 연도의 1월부터 한 달씩 대응합니다.
+# 사진과 대조해 2000년 10~12월은 3개, 2003년은 12개월로 교정했습니다.
+# 사진 판독이 불명확한 다른 구간은 사용자 제공 기록을 유지합니다.
+# 누락된 월은 "미"로 표시합니다.
+GOLD_RAW = {
+    2000: (10, "상상상"),
+    2001: (1, "미상하상상상상상상하하상"),
+    2002: (1, "미상상상상하하상상상하상"),
+    2003: (1, "상하하상상하하상상상상상"),
+    2004: (1, "하상상하상상하상상하상"),
+    2005: (1, "상상하상상상상상상하상상"),
+    2006: (1, "상상하상하하상하하상상"),
+    2007: (1, "상상하하하하상상상상하상"),
+    2008: (1, "상상상하상상상상상상하상"),
+    2009: (1, "상하하하상하상하상하상상"),
+    2010: (1, "상상하상상하하상상상상"),
+    2011: (1, "하상하상하하상상하상상"),
+    2012: (1, "상상하하하상상상상상"),
+    2013: (1, "상하상하하하상상하하하상"),
+    2014: (1, "상상하상하상상상하하상상"),
+    2015: (1, "상하하하상상하상하상"),
+    2016: (1, "상상하상하하상하상하하상"),
+    2017: (1, "상상하상상하상상하하상상"),
+    2018: (1, "상하하상상하하하상하하상"),
+    2019: (1, "상상상상하상상상하상하상"),
+    2020: (1, "상하상상상상"),
+    2021: (1, "상하하상상하상하하하상상"),
+    2022: (1, "상상상하하하상상하하상"),
+    2023: (1, "하상상상하하상상하상상상"),
+    2024: (1, "상상상상상상상상상상하상"),
+    2025: (1, "상상상상하상상상상상상상"),
+    2026: (1, "상상상상상하하상하"),
+}
+
+def gold_month_status(month):
+    info = GOLD_RAW.get(month.year)
+    if info is None:
+        return "미"
+    first_month, sequence = info
+    index = month.month - first_month
+    if index < 0 or index >= 12 or index >= len(sequence):
+        return "미"
+    return "하" if sequence[index] in ("ㅎ", "하") else "상" if sequence[index] == "상" else "미"
+
+
 
 def monthly_rates(df, months):
     if df is None or df.empty or "Close" not in df:
@@ -94,7 +140,7 @@ def fetch(year, month):
     return display_months, results
 
 st.title("📈 월간 주식 등락률")
-st.caption("기본 21개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 + 전월 비교")
+st.caption("기본 21개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 + 전월 비교 · 금 상/하 기록 표시")
 
 # 연월을 주소에 보존합니다. 재방문 시 같은 주소를 열면 선택값이 유지됩니다.
 def valid_date(y, m):
@@ -148,6 +194,8 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     .asset-table th.ticker,.asset-table th.name{z-index:4;background:#f0f1f4}
     .asset-table td.month{min-width:77px;width:77px;font-variant-numeric:tabular-nums;font-weight:650}
     .asset-table .up{color:#c62828}.asset-table .down{color:#1565c0}.asset-table .zero{color:#555}
+    .gold-tag{margin-left:3px;font-size:11px;font-weight:700}
+    .gold-tag.gold-up{color:#c62828}.gold-tag.gold-down{color:#1565c0}.gold-tag.gold-missing{color:#888}
     .asset-table tr.positive td{background:#fff0f0}.asset-table tr.negative td{background:#edf4ff}
     .asset-table tr.neutral td{background:#f6f6f6}
     .asset-table th.selected{background:#d7e1f0}
@@ -163,10 +211,15 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
         base = rates[0]
         row_class = "neutral" if base is None or base == 0 else ("positive" if base > 0 else "negative")
         cells = []
-        for rate in rates:
+        for idx, rate in enumerate(rates):
             cl = "zero" if rate is None or rate == 0 else ("up" if rate > 0 else "down")
             value = "—" if rate is None else f"{rate:+.1f}%"
-            cells.append(f'<td class="month {cl}">{value}</td>')
+            gold_html = ""
+            if ticker == "GLD":
+                status = gold_month_status(months[idx])
+                status_class = {"상": "gold-up", "하": "gold-down", "미": "gold-missing"}[status]
+                gold_html = f'<span class="gold-tag {status_class}">({status})</span>'
+            cells.append(f'<td class="month {cl}">{value}{gold_html}</td>')
         data = ','.join('null' if rate is None else str(round(rate, 8)) for rate in rates)
         html_rows.append(
             f'<tr class="{row_class}" data-rates="[{data}]"><td class="ticker">{html.escape(ticker)}</td>'
@@ -219,7 +272,10 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     columns = [f"{m.year}-{m.month:02d} 등락률(%)" for m in months]
     export = pd.DataFrame([{"티커":ticker, "종목명":name,
                             **{columns[i]: rates[i] for i in range(len(months))},
-                            "전월 등락률(%)": rates[6], "데이터 출처":note}
+                            "전월 등락률(%)": rates[6],
+                            **({**{f"{months[i].year}-{months[i].month:02d} 금 기록": gold_month_status(months[i]) for i in range(len(months))},
+                                "전월 금 기록": gold_month_status(months[6])} if ticker == "GLD" else {}),
+                            "데이터 출처":note}
                            for ticker, name, rates, note in ordered])
     st.download_button("6개월 + 전월 CSV 다운로드", export.to_csv(index=False).encode("utf-8-sig"),
                        file_name=f"monthly_{yy}_{mm:02d}_6months_plus_previous.csv",
