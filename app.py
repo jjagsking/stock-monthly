@@ -13,6 +13,7 @@ EXTRA = [('PLTR', '팔란티어'), ('KO', '코카콜라'), ('SBUX', '스타벅�
 print(f"기본 {len(BASE)}개 + 상승률 정렬 {len(EXTRA)}개 = 총 {len(BASE)+len(EXTRA)}개")
 # GLD는 달러 기준 금 ETF. 기존 금 선물 대신 사용.
 BASE = [("GLD", "금(GLD ETF)") if t == "GC=F" else (t, n) for t, n in BASE]
+BASE.append(("BTC-USD", "비트코인"))
 ALL = BASE + EXTRA
 
 
@@ -93,7 +94,7 @@ def fetch(year, month):
     return display_months, results
 
 st.title("📈 월간 주식 등락률")
-st.caption("기본 20개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 + 전월 비교")
+st.caption("기본 21개 고정 · 나머지 131개 선택 월 등락률순 · 6개월 + 전월 비교")
 
 # 연월을 주소에 보존합니다. 재방문 시 같은 주소를 열면 선택값이 유지됩니다.
 def valid_date(y, m):
@@ -133,7 +134,7 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
         selected(r) is None, -(selected(r) if selected(r) is not None else 0)))
     available = sum(selected(r) is not None for r in ordered)
     st.caption(f"{yy}년 {mm}월 기준 · {len(ordered)}개 종목 중 {available}개 수익률 조회")
-    st.caption("기본 20개는 고정, 추가 131개만 월 제목 클릭 시 정렬됩니다. 마지막 열은 전월 수익률입니다.")
+    st.caption("기본 21개는 고정, 추가 131개만 월 제목 클릭 시 정렬됩니다. 마지막 열은 전월 수익률입니다.")
     style = """
     <style>
     body{margin:0;font-family:system-ui,-apple-system,sans-serif}
@@ -175,7 +176,7 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
     <script>
     const tbody = document.querySelector('#assets tbody');
     const original = Array.from(tbody.rows);
-    const fixedRows = original.slice(0, 20); // 기본 20개는 언제나 원래 순서 유지
+    const fixedRows = original.slice(0, 21); // 기본 21개는 언제나 원래 순서 유지
     let currentCol = -1;
     let descending = true;
     function sortByMonth(col) {
