@@ -63,6 +63,44 @@ def gold_month_status(month):
 
 
 
+# 사용자 제공 달러 월별 기록: 빨간 원=상, 파란 원=하. 2026년 11~12월은 미.
+DOLLAR_RAW = {
+    1998: "하상하하상하하하상상하하",
+    1999: "하상상하하하상하하상하하",
+    2000: "하상하상상하상하상상상상",
+    2001: "하하상하하상하하상하하상",
+    2002: "하상상하하하하상상상하하",
+    2003: "하상상하하하하하하상상하",
+    2004: "하상하상하하상하하하하하",
+    2005: "하하상하상상하상상하하하",
+    2006: "하상상하상상상상하하하상",
+    2007: "상상하하하하하상하하상상",
+    2008: "상하상상상상하상상상상하",
+    2009: "상상하하하하하상하상하상",
+    2010: "하상하하상상하상하하상하",
+    2011: "하상하하상하하상상하상상",
+    2012: "하하상하상하하하상하하하",
+    2013: "상하상하상상하하하하하하",
+    2014: "상하하하하하상하상상상하",
+    2015: "상하상하상상상상상하상상",
+    2016: "상상하하상하하상하상상상",
+    2017: "하하하상하상하상상하하하",
+    2018: "상상하상상상하상하상하하",
+    2019: "하상상상상하상상하상상하",
+    2020: "상상상하상하하하하하하하",
+    2021: "상상상하하상상하상하상상",
+    2022: "상하상상하상상상상하하하",
+    2023: "하상하상하하하상상하하하",
+    2024: "상상상상하하하하하상상상",
+    2025: "하상상하하하상하상상상하",
+    2026: "상하상하상상하하하하",
+}
+
+def dollar_month_status(month):
+    seq = DOLLAR_RAW.get(month.year, "")
+    return seq[month.month - 1] if month.month <= len(seq) else "미"
+
+
 def monthly_rates(df, months):
     if df is None or df.empty or "Close" not in df:
         return [None] * len(months)
@@ -219,6 +257,10 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
                 status = gold_month_status(months[idx])
                 status_class = {"상": "gold-up", "하": "gold-down", "미": "gold-missing"}[status]
                 gold_html = f'<span class="gold-tag {status_class}">({status})</span>'
+            if ticker == "KRW=X":
+                status = dollar_month_status(months[idx])
+                status_class = {"상": "gold-up", "하": "gold-down", "미": "gold-missing"}[status]
+                gold_html = f'<span class="gold-tag {status_class}">({status})</span>'
             cells.append(f'<td class="month {cl}">{value}{gold_html}</td>')
         data = ','.join('null' if rate is None else str(round(rate, 8)) for rate in rates)
         html_rows.append(
@@ -275,6 +317,8 @@ if submit or valid_date(st.query_params.get("year"), st.query_params.get("month"
                             "전월 등락률(%)": rates[6],
                             **({**{f"{months[i].year}-{months[i].month:02d} 금 기록": gold_month_status(months[i]) for i in range(len(months))},
                                 "전월 금 기록": gold_month_status(months[6])} if ticker == "GLD" else {}),
+                            **({**{f"{months[i].year}-{months[i].month:02d} 달러 기록": dollar_month_status(months[i]) for i in range(len(months))},
+                                "전월 달러 기록": dollar_month_status(months[6])} if ticker == "KRW=X" else {}),
                             "데이터 출처":note}
                            for ticker, name, rates, note in ordered])
     st.download_button("6개월 + 전월 CSV 다운로드", export.to_csv(index=False).encode("utf-8-sig"),
