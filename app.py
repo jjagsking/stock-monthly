@@ -442,5 +442,31 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
         help="선택한 1개월 등락률만 저장합니다. 화면의 6개월 표시는 유지됩니다."
     )
 
+    # 게임용 목록: 통합 CSV와 같은 월간 등락률 기준으로 종목명만 추출합니다.
+    # 기존 CSV 다운로드 및 차트 표시는 변경하지 않습니다.
+    min_buy_return = st.number_input(
+        "매수 대상 최소 상승률 (%)", value=5.0, step=0.5,
+        format="%.1f", key="buy_min_return"
+    )
+    combined_df = pd.read_csv(
+        __import__("io").BytesIO(combined_one_month_csv(yy, mm, fx_adjust))
+    )
+    eligible = combined_df[
+        combined_df["등락률(%)"].notna()
+        & (combined_df["등락률(%)"] >= min_buy_return)
+    ].sort_values("등락률(%)", ascending=False, kind="stable")
+    # 같은 종목명이 여러 시장에 중복되어도 검색은 한 번만 실행합니다.
+    buy_names = eligible["종목명"].dropna().astype(str).str.strip()
+    buy_names = buy_names[buy_names.ne("")].drop_duplicates().tolist()
+    st.caption(f"{yy}년 {mm}월 · {min_buy_return:g}% 이상 · 매수 대상 {len(buy_names)}개")
+    st.download_button(
+        "매수 종목명 TXT 다운로드",
+        data=("\n".join(buy_names) + ("\n" if buy_names else "")).encode("utf-8-sig"),
+        file_name=f"buy_list_{yy}_{mm:02d}_{min_buy_return:g}pct.txt",
+        mime="text/plain", use_container_width=True,
+        disabled=not buy_names,
+        help="종목명만 한 줄에 하나씩 저장합니다. MacroDroid에서 목록으로 사용할 수 있습니다."
+    )
+
 st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
 st.markdown("<div style='font-size:11px;opacity:.58;margin-top:12px'>자료 출처: 한국은행 ECOS(원/달러) · Yahoo Finance(주식·ETF·코인·지수·금 선물) · 금(원/g)은 국제 금 선물과 원/달러 환율로 환산한 추정치<br>월간 등락률: 전월 말 종가 대비 · Made by JH</div>", unsafe_allow_html=True)
