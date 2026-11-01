@@ -15,7 +15,7 @@ OVERSEAS = [(t,n) for t,n in BASE[2:] + EXTRA if t not in ("005930.KS", "000660.
 ALL = MARKET + OVERSEAS
 COINS = [('BTC-USD', '비트코인'), ('ETH-USD', '이더리움'), ('XRP-USD', '리플'), ('SOL-USD', '솔라나'), ('ADA-USD', '에이다'), ('DOGE-USD', '도지코인'), ('DOT-USD', '폴카닷'), ('AVAX-USD', '아발란체'), ('LINK-USD', '체인링크'), ('TRX-USD', '트론'), ('BCH-USD', '비트코인캐시'), ('SAND-USD', '샌드박스'), ('ATOM-USD', '코스모스'), ('NEAR-USD', '니어'), ('ETC-USD', '이더리움클래식'), ('ALGO-USD', '알고랜드'), ('SUI-USD', '수이'), ('APT-USD', '앱토스'), ('SEI-USD', '세이'), ('STX-USD', '스택스'), ('JUP-USD', '주피터'), ('ONDO-USD', '온도')]
 
-# ETF 목록: 사용자 제공 화면 기준. 국내 ETF는 거래소 종목코드 확인 전까지 별도 표시합니다.
+# ETF 목록: 사용자 제공 화면 기준.
 ETF_US = [
  ('SPY','S&P500'),('QQQ','나스닥100'),('ARKK','ARK 이노베이션'),('TQQQ','나스닥100 3배'),('SOXL','반도체 3배'),
  ('DIA','다우존스'),('IWM','러셀2000'),('VTI','미국전체'),('VOO','S&P500 뱅가드'),('SCHD','미국배당'),('TLT','미국채20년+'),
@@ -27,14 +27,22 @@ ETF_US = [
  ('GDX','금광주'),('USO','원유'),('KWEB','중국 인터넷'),('FXI','중국 대형주'),('EWJ','일본'),('INDA','인도'),
  ('IBIT','비트코인 현물'),('XLY','소비재'),('SOXS','반도체 인버스 3배'),('TECL','기술주 3배'),('TMF','미국채20년 3배'),
  ('NVDL','엔비디아 2배'),('TSLL','테슬라 2배'),('BITO','비트코인 선물')]
-# 국내 ETF 14종: 화면에서 티커가 없어 종목명으로 보존하며, 정확한 종목코드 확정 후 데이터 연결 예정.
-ETF_KR_NAMES = [
- 'KODEX 반도체','KODEX 레버리지','TIGER 미국나스닥100','KODEX 골드선물(H)',
- 'KODEX 2차전지산업','TIGER 미국S&P500','KODEX 코스닥150','KODEX 코스닥150레버리지',
- 'TIGER 200','KODEX 삼성그룹','KODEX 은행','KODEX 자동차','TIGER 반도체','KODEX 단기채권',
- 'TIGER 미국필라델피아반도체나스닥','TIGER 미국테크TOP10 INDXX',
- 'TIGER 차이나전기차SOLACTIVE','TIGER 미국배당다우존스','PLUS K방산','TIGER 리츠부동산인프라']
-ETF_LIST = ETF_US + [('KR_ETF_'+str(i), name) for i, name in enumerate(ETF_KR_NAMES)]
+# 국내 ETF: 거래소 6자리 코드 사용 (Yahoo Finance .KS)
+ETF_KR = [
+ ('091160.KS','KODEX 반도체'),('122630.KS','KODEX 레버리지'),
+ ('133690.KS','TIGER 미국나스닥100'),('132030.KS','KODEX 골드선물(H)'),
+ ('305720.KS','KODEX 2차전지산업'),('360750.KS','TIGER 미국S&P500'),
+ ('229200.KS','KODEX 코스닥150'),('233740.KS','KODEX 코스닥150레버리지'),
+ ('102110.KS','TIGER 200'),('102780.KS','KODEX 삼성그룹'),
+ ('091170.KS','KODEX 은행'),('091180.KS','KODEX 자동차'),
+ ('091230.KS','TIGER 반도체'),('153130.KS','KODEX 단기채권'),
+ ('381180.KS','TIGER 미국필라델피아반도체나스닥'),
+ ('381170.KS','TIGER 미국테크TOP10 INDXX'),
+ ('371460.KS','TIGER 차이나전기차SOLACTIVE'),
+ ('458730.KS','TIGER 미국배당다우존스'),
+ ('449450.KS','PLUS K방산'),('329200.KS','TIGER 리츠부동산인프라'),
+]
+ETF_LIST = ETF_US + ETF_KR
 
 # 사용자 제공 코스피 게임 화면 10장에 등장한 종목 (상장 전 표시 포함).
 # Yahoo Finance 한국 거래소 종목코드는 .KS를 붙입니다.
@@ -155,7 +163,7 @@ def fetch(year, month, category="해외"):
     results = {}
     assets = ALL if category == "해외" else (ETF_LIST + MARKET if category == "ETF" else (COINS + MARKET if category == "코인" else KOSPI + MARKET))
     with ThreadPoolExecutor(max_workers=8) as pool:
-        jobs = {pool.submit(get_one, ticker, display_months): ticker for ticker, _ in assets if not ticker.startswith("KR_ETF_")}
+        jobs = {pool.submit(get_one, ticker, display_months): ticker for ticker, _ in assets if True}
         for job in as_completed(jobs):
             ticker = jobs[job]
             try:
@@ -219,7 +227,7 @@ if category in ("해외", "ETF", "코스피", "코인") and (submit or valid_dat
     # 원본 수익률은 보존하고 화면/CSV 표시용 값만 환율 보정합니다.
     fx_rates = values.get("KRW=X", ([None] * 7, "환율 데이터 없음"))[0]
     def adjusted(ticker, rates):
-        if not fx_adjust or category == "코스피" or ticker in ("KRW=X", "^KS200") or ticker.endswith((".KS", ".KQ")) or ticker.startswith("KR_ETF_"):
+        if not fx_adjust or category == "코스피" or ticker in ("KRW=X", "^KS200") or ticker.endswith((".KS", ".KQ")):
             return list(rates)
         out = []
         for stock_rate, fx_rate in zip(rates, fx_rates):
@@ -231,7 +239,7 @@ if category in ("해외", "ETF", "코스피", "코인") and (submit or valid_dat
 
     assets = OVERSEAS if category == "해외" else (ETF_LIST if category == "ETF" else (COINS if category == "코인" else KOSPI))
     rows = [(ticker, name, adjusted(ticker, values.get(ticker, ([None]*7, "데이터 없음"))[0]),
-             values.get(ticker, ([None]*7, "국내 ETF 종목코드 확인 대기" if ticker.startswith("KR_ETF_") else "데이터 없음"))[1])
+             values.get(ticker, ([None]*7, "데이터 없음"))[1])
             for ticker, name in assets]
     market_rows = [(ticker, name, values.get(ticker, ([None]*7, "데이터 없음"))[0],
                     values.get(ticker, ([None]*7, "데이터 없음"))[1]) for ticker, name in MARKET]
@@ -241,7 +249,7 @@ if category in ("해외", "ETF", "코스피", "코인") and (submit or valid_dat
         selected(r) is None, -(selected(r) if selected(r) is not None else 0)))
     available = sum(selected(r) is not None for r in ordered)
     st.caption(f"{yy}년 {mm}월 기준 · {len(ordered)}개 종목 중 {available}개 수익률 조회")
-    st.caption(("상단 고정 종목 · 나머지 종목만 정렬" if category == "해외" else ("ETF 전체 종목 정렬 · 국내 ETF 일부는 코드 확인 대기" if category == "ETF" else "코스피 전체 종목 정렬 · 원화 기준" if category == "코스피" else "비트코인 고정 · 나머지 코인 정렬")) + " · 마지막 열은 전월 수익률")
+    st.caption(("상단 고정 종목 · 나머지 종목만 정렬" if category == "해외" else ("ETF 전체 종목 정렬 · 국내 ETF는 원화 기준" if category == "ETF" else "코스피 전체 종목 정렬 · 원화 기준" if category == "코스피" else "비트코인 고정 · 나머지 코인 정렬")) + " · 마지막 열은 전월 수익률")
     style = """
     <style>
     body{margin:0;font-family:system-ui,-apple-system,sans-serif}
@@ -317,7 +325,7 @@ if category in ("해외", "ETF", "코스피", "코인") and (submit or valid_dat
             cells.append(f'<td class="month {cl}"{fx_title}>{value}{gold_html}{fx_html}</td>')
         data = ','.join('null' if rate is None else str(round(rate, 8)) for rate in rates)
         html_rows.append(
-            f'<tr class="{row_class}" data-rates="[{data}]"><td class="ticker">{html.escape("—" if ticker.startswith("KR_ETF_") else ticker)}</td>'
+            f'<tr class="{row_class}" data-rates="[{data}]"><td class="ticker">{html.escape(ticker)}</td>'
             f'<td class="name" title="{html.escape(name, quote=True)}">{html.escape(name)}</td>'
             + ''.join(cells) + '</tr>')
     javascript = """
