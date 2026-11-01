@@ -11,8 +11,8 @@ st.set_page_config(page_title="월간 주식 등락률", page_icon="📈", layou
 BASE = [('KRW=X', '달러/원 환율'), ('GLD', '금(GLD ETF)'), ('BTC-USD', '비트코인'), ('AAPL', '애플'), ('MSFT', '마이크로소프트'), ('NVDA', '엔비디아'), ('AMZN', '아마존'), ('GOOGL', '알파벳'), ('META', '메타'), ('TSLA', '테슬라'), ('NFLX', '넷플릭스'), ('AMD', 'AMD'), ('INTC', '인텔'), ('AVGO', '브로드컴'), ('QCOM', '퀄컴'), ('^KS200', '코스피200'), ('^NDX', '나스닥100'), ('^GSPC', 'S&P500'), ('^DJI', '다우존스'), ('005930.KS', '삼성전자'), ('000660.KS', 'SK하이닉스')]
 EXTRA = [('PLTR', '팔란티어'), ('KO', '코카콜라'), ('SBUX', '스타벅스'), ('DDOG', '데이터독'), ('NET', '클라우드플레어'), ('TTD', '트레이드데스크'), ('ENPH', '엔페이즈'), ('LULU', '룰루레몬'), ('SPCX', '스페이스X'), ('F', '포드'), ('GM', '제너럴모터스'), ('RACE', '페라리'), ('UPS', 'UPS'), ('ISRG', '인튜이티브서지컬'), ('PANW', '팔로알토'), ('VRTX', '버텍스'), ('VZ', '버라이즌'), ('T', 'AT&T'), ('SONY', '소니'), ('TM', '토요타'), ('BIDU', '바이두'), ('MELI', '메르카도리브레'), ('EBAY', '이베이'), ('NOW', '서비스나우'), ('SHOP', '쇼피파이'), ('SPOT', '스포티파이'), ('CAT', '캐터필러'), ('MMM', '3M'), ('LMT', '록히드마틴'), ('FDX', '페덱스'), ('ABBV', '애브비'), ('UNH', '유나이티드헬스'), ('PEP', '펩시'), ('HD', '홈디포'), ('IBM', 'IBM'), ('TXN', '텍사스인스트루먼트'), ('GS', '골드만삭스'), ('MS', '모건스탠리'), ('WFC', '웰스파고'), ('XOM', '엑슨모빌'), ('CVX', '셰브론'), ('PFE', '화이자'), ('MRK', '머크'), ('QBTS', '디웨이브'), ('NKE', '나이키'), ('SFTBY', '소프트뱅크'), ('TCEHY', '텐센트'), ('QURE', '유니큐어'), ('MA', '마스터카드'), ('AXP', '아메리칸익스프레스'), ('RDDT', '레딧'), ('CRWV', '코어위브'), ('CRCL', '서클'), ('APP', '앱러빈'), ('SOUN', '사운드하운드'), ('OPEN', '오픈도어'), ('ASTS', 'AST스페이스모바일'), ('PYPL', '페이팔'), ('UPST', '업스타트'), ('SNAP', '스냅'), ('ABNB', '에어비앤비'), ('MRNA', '모더나'), ('NVAX', '노바백스'), ('TLRY', '틸레이'), ('WMT', '월마트'), ('COST', '코스트코'), ('DIS', '디즈니'), ('BA', '보잉'), ('BRK-B', '버크셔'), ('SMR', '뉴스케일파워'), ('OKLO', '오클로'), ('IONQ', '아이온큐'), ('RGTI', '리게티'), ('LUNR', '인튜이티브머신'), ('RKLB', '로켓랩'), ('DJT', '트럼프미디어'), ('LLY', '일라이릴리'), ('NVO', '노보노디스크'), ('ASML', 'ASML'), ('ARM', 'ARM'), ('CRWD', '크라우드스트라이크'), ('VST', '비스트라'), ('CEG', '컨스텔레이션에너지'), ('JPM', 'JP모건'), ('BAC', '뱅크오브아메리카'), ('PG', 'P&G'), ('JNJ', '존슨앤드존슨'), ('SNDK', '샌디스크'), ('WDC', '웨스턴디지털'), ('HIMS', '힘스앤허스'), ('VRT', '버티브'), ('ANET', '아리스타'), ('MRVL', '마벨'), ('AMAT', '어플라이드머티리얼즈'), ('GEV', 'GE버노바'), ('ORCL', '오라클'), ('CRM', '세일즈포스'), ('ADBE', '어도비'), ('MU', '마이크론'), ('COIN', '코인베이스'), ('MSTR', '마이크로스트래티지'), ('UBER', '우버'), ('MCD', '맥도날드'), ('V', '비자'), ('GME', '게임스탑'), ('AMC', 'AMC'), ('RIVN', '리비안'), ('LCID', '루시드'), ('PTON', '펠로톤'), ('ZM', '줌'), ('ROKU', '로쿠'), ('TSM', 'TSMC'), ('BB', '블랙베리'), ('NOK', '노키아'), ('CSCO', '시스코'), ('CPNG', '쿠팡'), ('PDD', '핀둬둬'), ('RIOT', '라이엇플랫폼'), ('SMCI', '슈퍼마이크로'), ('CVNA', '카바나'), ('BABA', '알리바바'), ('NIO', '니오'), ('PLUG', '플러그파워'), ('FSLR', '퍼스트솔라'), ('SPCE', '버진갤럭틱'), ('BYND', '비욘드미트'), ('SNOW', '스노우플레이크'), ('RBLX', '로블록스'), ('HOOD', '로빈후드'), ('SOFI', '소파이'), ('MARA', '마라홀딩스'), ('ACHR', '아처 에비에이션'), ('AFRM', '어펌 홀딩스'), ('AI', 'C3.ai'), ('ALAB', '아스테라 랩스'), ('AMGN', '암젠'), ('BLK', '블랙록'), ('C', '씨티그룹'), ('CCL', '카니발'), ('CELH', '셀시어스 홀딩스'), ('CMCSA', '컴캐스트'), ('CMG', '치폴레'), ('CRDO', '크레도 테크놀로지'), ('DAL', '델타항공'), ('DKNG', '드래프트킹스'), ('DOCU', '도큐사인'), ('DXCM', '덱스컴'), ('ELF', 'e.l.f. 뷰티'), ('GE', 'GE 에어로스페이스'), ('GILD', '길리어드 사이언스'), ('HON', '허니웰'), ('COHR', '코히런트(구 IIVI)'), ('INTU', '인튜이트'), ('JD', '징둥닷컴'), ('JOBY', '조비 에비에이션'), ('KLAC', 'KLA'), ('LI', '리 오토'), ('LRCX', '램리서치'), ('MDB', '몽고DB'), ('MNST', '몬스터 베버리지'), ('NEE', '넥스트에라 에너지'), ('NOC', '노스럽 그러먼'), ('NTDOY', '닌텐도 ADR'), ('NU', '누 홀딩스'), ('O', '리얼티 인컴'), ('ON', '온세미'), ('OXY', '옥시덴탈'), ('BKNG', '부킹홀딩스(구 PCLN)'), ('PM', '필립모리스'), ('REGN', '리제네론'), ('RTX', 'RTX'), ('SCHW', '찰스슈왑'), ('SE', '씨 리미티드'), ('XYZ', '블록(구 SQ)'), ('TGT', '타깃'), ('TMO', '써모 피셔'), ('TTWO', '테이크투'), ('TWLO', '트윌리오'), ('U', '유니티'), ('XPEV', '샤오펑'), ('ZS', '지스케일러')]
 MARKET = BASE[:2]
-OVERSEAS = BASE[2:] + EXTRA
-ALL = BASE + EXTRA
+OVERSEAS = [(t,n) for t,n in BASE[2:] + EXTRA if t not in ("005930.KS", "000660.KS")]
+ALL = MARKET + OVERSEAS
 
 # ETF 목록: 사용자 제공 화면 기준. 국내 ETF는 거래소 종목코드 확인 전까지 별도 표시합니다.
 ETF_US = [
@@ -34,6 +34,11 @@ ETF_KR_NAMES = [
  'TIGER 미국필라델피아반도체나스닥','TIGER 미국테크TOP10 INDXX',
  'TIGER 차이나전기차SOLACTIVE','TIGER 미국배당다우존스','PLUS K방산','TIGER 리츠부동산인프라']
 ETF_LIST = ETF_US + [('KR_ETF_'+str(i), name) for i, name in enumerate(ETF_KR_NAMES)]
+
+# 사용자 제공 코스피 게임 화면 10장에 등장한 종목 (상장 전 표시 포함).
+# Yahoo Finance 한국 거래소 종목코드는 .KS를 붙입니다.
+KOSPI = [('005930.KS', '삼성전자'), ('000660.KS', 'SK하이닉스'), ('005380.KS', '현대차'), ('000270.KS', '기아'), ('006400.KS', '삼성SDI'), ('373220.KS', 'LG에너지솔루션'), ('207940.KS', '삼성바이오로직스'), ('035420.KS', '네이버'), ('035720.KS', '카카오'), ('051910.KS', 'LG화학'), ('005490.KS', 'POSCO홀딩스'), ('012330.KS', '현대모비스'), ('105560.KS', 'KB금융'), ('055550.KS', '신한지주'), ('028260.KS', '삼성물산'), ('096770.KS', 'SK이노베이션'), ('015760.KS', '한국전력'), ('011200.KS', 'HMM(현대상선)'), ('069500.KS', 'KODEX 200'), ('267260.KS', 'HD현대일렉트릭'), ('010120.KS', 'LS ELECTRIC'), ('298040.KS', '효성중공업'), ('086790.KS', '하나금융지주'), ('402340.KS', 'SK스퀘어'), ('066570.KS', 'LG전자'), ('017670.KS', 'SK텔레콤'), ('010130.KS', '고려아연'), ('009540.KS', 'HD한국조선해양(한화오션 아님)'), ('042660.KS', '한화오션'), ('329180.KS', 'HD현대중공업'), ('010140.KS', '삼성중공업'), ('047810.KS', '한국항공우주'), ('079550.KS', 'LIG넥스원'), ('064350.KS', '현대로템'), ('003230.KS', '삼양식품'), ('004370.KS', '농심'), ('007310.KS', '오뚜기'), ('097950.KS', 'CJ제일제당'), ('005180.KS', '빙그레'), ('000080.KS', '하이트진로'), ('128940.KS', '한미약품'), ('009150.KS', '삼성전기'), ('032830.KS', '삼성생명'), ('323410.KS', '카카오뱅크'), ('259960.KS', '크래프톤'), ('352820.KS', '하이브'), ('090430.KS', '아모레퍼시픽'), ('033780.KS', 'KT&G'), ('036570.KS', '엔씨소프트'), ('012450.KS', '한화에어로스페이스'), ('047050.KS', '포스코인터내셔널'), ('000810.KS', '삼성화재'), ('034020.KS', '두산에너빌리티'), ('001570.KS', '금양'), ('042700.KS', '한미반도체'), ('022100.KS', '포스코DX'), ('348370.KS', '엔켐'), ('006360.KS', 'GS건설'), ('010060.KS', 'OCI홀딩스'), ('454910.KS', '두산로보틱스'), ('051900.KS', 'LG생활건강'), ('003490.KS', '대한항공'), ('005830.KS', 'DB손해보험'), ('011070.KS', 'LG이노텍'), ('161390.KS', '한국타이어앤테크놀로지'), ('000100.KS', '유한양행'), ('011780.KS', '금호석유화학'), ('004020.KS', '현대제철'), ('034730.KS', 'SK'), ('000720.KS', '현대건설'), ('316140.KS', '우리금융지주'), ('024110.KS', '기업은행'), ('030200.KS', 'KT'), ('010950.KS', 'S-Oil'), ('006800.KS', '미래에셋증권'), ('003550.KS', 'LG'), ('018260.KS', '삼성SDS'), ('241560.KS', '두산밥캣'), ('078930.KS', 'GS'), ('138040.KS', '메리츠금융지주'), ('192820.KS', '코스맥스'), ('019170.KS', '신풍제약'), ('003920.KS', '남양유업'), ('180640.KS', '한진칼'), ('007660.KS', '이수페타시스'), ('017390.KS', '서울가스'), ('005935.KS', '삼성전자우'), ('112610.KS', '씨에스윈드'), ('051600.KS', '한전KPS'), ('000990.KS', 'DB하이텍'), ('008930.KS', '한미사이언스'), ('047040.KS', '대우건설'), ('000150.KS', '두산'), ('001040.KS', 'CJ'), ('001450.KS', '현대해상'), ('000880.KS', '한화'), ('088350.KS', '한화생명'), ('004990.KS', '롯데지주'), ('023530.KS', '롯데쇼핑'), ('004170.KS', '신세계'), ('069960.KS', '현대백화점'), ('028050.KS', '삼성E&A'), ('069620.KS', '대웅제약'), ('204320.KS', 'HL만도'), ('009830.KS', '한화솔루션'), ('267250.KS', 'HD현대'), ('006260.KS', 'LS'), ('003670.KS', '포스코퓨처엠'), ('011170.KS', '롯데케미칼'), ('071050.KS', '한국금융지주'), ('005940.KS', 'NH투자증권'), ('016360.KS', '삼성증권'), ('039490.KS', '키움증권'), ('006280.KS', '녹십자'), ('139480.KS', '이마트'), ('035250.KS', '강원랜드'), ('008770.KS', '호텔신라'), ('039130.KS', '하나투어'), ('034220.KS', 'LG디스플레이'), ('032640.KS', 'LG유플러스'), ('036460.KS', '한국가스공사'), ('021240.KS', '코웨이'), ('383220.KS', 'F&F'), ('103140.KS', '풍산'), ('161890.KS', '한국콜마'), ('001440.KS', '대한전선'), ('450080.KS', '에코프로머티'), ('395400.KS', 'SK아이이테크놀로지'), ('377300.KS', '카카오페이'), ('302440.KS', 'SK바이오사이언스'), ('251270.KS', '넷마블'), ('326030.KS', 'SK바이오팜'), ('278470.KS', '에이피알'), ('062040.KS', '산일전기')]
+
 
 
 # 사용자 제공 금 월별 상/하 기록. 00.10은 2000년 10월부터 시작합니다.
@@ -147,7 +152,7 @@ def fetch(year, month, category="해외"):
     months = [pd.Timestamp(year, month, 1) + pd.DateOffset(months=i) for i in range(6)]
     display_months = months + [months[0] - pd.DateOffset(months=1)]
     results = {}
-    assets = ALL if category == "해외" else ETF_LIST + MARKET
+    assets = ALL if category == "해외" else (ETF_LIST + MARKET if category == "ETF" else KOSPI + MARKET)
     with ThreadPoolExecutor(max_workers=8) as pool:
         jobs = {pool.submit(get_one, ticker, display_months): ticker for ticker, _ in assets if not ticker.startswith("KR_ETF_")}
         for job in as_completed(jobs):
@@ -171,6 +176,8 @@ if category == "해외":
     st.caption(f"상단 달러·금 기준 지표 · 고정 {len(BASE)-2}개 · 추가 {len(EXTRA)}개 · 6개월 + 전월")
 elif category == "ETF":
     st.caption(f"ETF {len(ETF_LIST)}개 · 월별 등락률순 정렬 · 6개월 + 전월")
+elif category == "코스피":
+    st.caption(f"국내 종목 {len(KOSPI)}개 · 월별 등락률순 정렬 · 환율 보정 제외")
 else:
     st.info(f"{category} 탭의 종목은 추후 지정하실 수 있습니다.")
 
@@ -204,14 +211,14 @@ if submit:
 fx_adjust = st.toggle("달러/원 환율 보정", value=False, help="OFF: 달러 기준 월봉 수익률 / ON: 월별 원화 환산 수익률. 환율 데이터가 없는 달은 미표시합니다.")
 st.caption("ON은 미국 주식·미국 상장 ETF에만 적용합니다. 국내 원화 종목과 지수, 달러/원 자체는 보정하지 않습니다.")
 
-if category in ("해외", "ETF") and (submit or valid_date(st.query_params.get("year"), st.query_params.get("month"))):
+if category in ("해외", "ETF", "코스피") and (submit or valid_date(st.query_params.get("year"), st.query_params.get("month"))):
     yy, mm = int(st.query_params["year"]), int(st.query_params["month"])
     with st.spinner(f"{yy}년 {mm}월부터 6개월 조회 중..."):
         months, values = fetch(yy, mm, category)
     # 원본 수익률은 보존하고 화면/CSV 표시용 값만 환율 보정합니다.
     fx_rates = values.get("KRW=X", ([None] * 7, "환율 데이터 없음"))[0]
     def adjusted(ticker, rates):
-        if not fx_adjust or ticker in ("KRW=X", "^KS200", "005930.KS", "000660.KS") or ticker.startswith("KR_ETF_"):
+        if not fx_adjust or category == "코스피" or ticker in ("KRW=X", "^KS200") or ticker.endswith((".KS", ".KQ")) or ticker.startswith("KR_ETF_"):
             return list(rates)
         out = []
         for stock_rate, fx_rate in zip(rates, fx_rates):
@@ -221,19 +228,19 @@ if category in ("해외", "ETF") and (submit or valid_date(st.query_params.get("
                 out.append(((1 + stock_rate / 100) * (1 + fx_rate / 100) - 1) * 100)
         return out
 
-    assets = OVERSEAS if category == "해외" else ETF_LIST
+    assets = OVERSEAS if category == "해외" else (ETF_LIST if category == "ETF" else KOSPI)
     rows = [(ticker, name, adjusted(ticker, values.get(ticker, ([None]*7, "데이터 없음"))[0]),
              values.get(ticker, ([None]*7, "국내 ETF 종목코드 확인 대기" if ticker.startswith("KR_ETF_") else "데이터 없음"))[1])
             for ticker, name in assets]
     market_rows = [(ticker, name, values.get(ticker, ([None]*7, "데이터 없음"))[0],
                     values.get(ticker, ([None]*7, "데이터 없음"))[1]) for ticker, name in MARKET]
     selected = lambda row: row[2][0]
-    fixed_count = len(BASE)-2 if category == "해외" else 0
+    fixed_count = len([t for t,n in BASE[2:] if t not in ("005930.KS", "000660.KS")]) if category == "해외" else 0
     ordered = rows[:fixed_count] + sorted(rows[fixed_count:], key=lambda r: (
         selected(r) is None, -(selected(r) if selected(r) is not None else 0)))
     available = sum(selected(r) is not None for r in ordered)
     st.caption(f"{yy}년 {mm}월 기준 · {len(ordered)}개 종목 중 {available}개 수익률 조회")
-    st.caption(("상단 21개 고정 · 나머지 종목만 정렬" if category == "해외" else "ETF 전체 종목 정렬 · 국내 ETF 일부는 코드 확인 대기") + " · 마지막 열은 전월 수익률")
+    st.caption(("상단 고정 종목 · 나머지 종목만 정렬" if category == "해외" else ("ETF 전체 종목 정렬 · 국내 ETF 일부는 코드 확인 대기" if category == "ETF" else "코스피 전체 종목 정렬 · 원화 기준")) + " · 마지막 열은 전월 수익률")
     style = """
     <style>
     body{margin:0;font-family:system-ui,-apple-system,sans-serif}
@@ -285,7 +292,7 @@ if category in ("해외", "ETF") and (submit or valid_date(st.query_params.get("
     st.markdown("#### 🌐 시장 기준 지표 (달러 · 금)")
     components.html(build_market_table(), height=160, scrolling=False)
     st.caption("달러·금은 원본 월봉을 유지하며, 환율 보정 ON/OFF와 무관하게 표시됩니다.")
-    st.markdown(f"#### {category} 월봉 등락률 · {'원화 환산' if fx_adjust else '원본 달러 기준'}")
+    st.markdown(f"#### {category} 월봉 등락률 · {('원화 기준' if category == '코스피' else ('원화 환산' if fx_adjust else '원본 달러 기준'))}")
     html_rows = []
     for ticker, name, rates, note in ordered:
         base = rates[0]
@@ -343,7 +350,7 @@ if category in ("해외", "ETF") and (submit or valid_date(st.query_params.get("
     """
     javascript = javascript.replace("__FIXED_COUNT__", str(fixed_count))
     components.html(
-        style + '<div class="hint">월 제목을 누르면 ' + ('고정 종목을 제외한 해외 종목' if category == '해외' else '전체 ETF') + '의 등락률순 정렬이 전환됩니다.</div>'
+        style + '<div class="hint">월 제목을 누르면 ' + ('고정 종목을 제외한 해외 종목' if category == '해외' else ('전체 ETF' if category == 'ETF' else '코스피 종목')) + '의 등락률순 정렬이 전환됩니다.</div>'
         + '<div class="asset-scroll"><table id="assets" class="asset-table"><thead><tr>'
         '<th class="ticker">티커</th><th class="name">종목명</th>'
         + headers + '</tr></thead><tbody>' + ''.join(html_rows)
@@ -372,4 +379,4 @@ if category in ("해외", "ETF") and (submit or valid_date(st.query_params.get("
                        mime="text/csv", use_container_width=True)
 
 st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
-st.caption("해외: 달러/원 한국은행 ECOS · 코스피200 FinanceDataReader · 금 GLD ETF(달러 기준) | ETF: Yahoo Finance 월말 종가 기준")
+st.caption("해외: 달러/원 한국은행 ECOS · 코스피200 FinanceDataReader · 금 GLD ETF(달러 기준) | 코스피·ETF: Yahoo Finance 월말 종가 기준")
