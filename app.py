@@ -442,31 +442,83 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
         help="선택한 1개월 등락률만 저장합니다. 화면의 6개월 표시는 유지됩니다."
     )
 
-    # 게임용 목록: 통합 CSV와 같은 월간 등락률 기준으로 종목명만 추출합니다.
-    # 기존 CSV 다운로드 및 차트 표시는 변경하지 않습니다.
-    min_buy_return = st.number_input(
-        "매수 대상 최소 상승률 (%)", value=5.0, step=0.5,
-        format="%.1f", key="buy_min_return"
-    )
-    combined_df = pd.read_csv(
-        __import__("io").BytesIO(combined_one_month_csv(yy, mm, fx_adjust))
-    )
-    eligible = combined_df[
-        combined_df["등락률(%)"].notna()
-        & (combined_df["등락률(%)"] >= min_buy_return)
-    ].sort_values("등락률(%)", ascending=False, kind="stable")
-    # 같은 종목명이 여러 시장에 중복되어도 검색은 한 번만 실행합니다.
-    buy_names = eligible["종목명"].dropna().astype(str).str.strip()
-    buy_names = buy_names[buy_names.ne("")].drop_duplicates().tolist()
-    st.caption(f"{yy}년 {mm}월 · {min_buy_return:g}% 이상 · 매수 대상 {len(buy_names)}개")
+
+    # 월별 전략 대상 비교: 월봉 배열의 0번은 선택 월, 6번은 직전 월입니다.
+    # 게임 내에서 이름이 다른 것으로 사용자가 확인한 종목만 변환합니다.
+    GAME_STOCK_NAMES = {
+        "XYZ": "스퀘어 (SQ)", "ELF": "이엘에프뷰티 (ELF)",
+        "CELH": "셀시어스 (CELH)", "NOC": "노스럽그러먼 (NOC)",
+        "COHR": "II-VI (IIVI)", "047050.KS": "포스코대우",
+        "CVX": "셰브론 (CVX)", "012450.KS": "한화테크윈",
+        "005490.KS": "POSCO",
+    }
+
+    st.markdown("#### 월별 리밸런싱 TXT 다운로드")
+    rc1, rc2 = st.columns(2)
+    with rc1:
+        previous_threshold = st.number_input(
+            "전월 상승률 기준 (%)", value=5.0, step=0.5,
+            format="%.1f", key="rebalance_previous_pct")
+    with rc2:
+        current_threshold = st.number_input(
+            "이번 달 상승률 기준 (%)", value=2.0, step=0.5,
+            format="%.1f", key="rebalance_current_pct")
+
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def make_rebalance_lists(y, m, currency_adjust, previous_pct, current_pct):
+        display_months, shared_values = fetch(y, m, "통합")
+        fx_data = shared_values.get("KRW=X", ([None] * 7, ""))[0]
+        # 거래 가능한 세 분류만 포함. 티커를 키로 사용하므로 종목명이 달라도 동일 기업으로 처리됩니다.
+        sell, buy, hold, unknown = [], [], [], []
+        unique = {}
+        for group, items in (("코스피", KOSPI), ("해외", OVERSEAS), ("코인", COINS)):
+            for ticker, name in items:
+                unique.setdefault(ticker, (group, name))
+        for ticker, (group, name) in unique.items():
+            rates, _ = shared_values.get(ticker, ([None] * 7, "데이터 없음"))
+            curr_rate, prev_rate = rates[0], rates[6]
+            if currency_adjust and group in ("해외", "코인"):
+                def fx_convert(rate, fx_rate):
+                    if rate is None or fx_rate is None:
+                        return None
+                    return ((1 + rate / 100) * (1 + fx_rate / 100) - 1) * 100
+                curr_rate = fx_convert(curr_rate, fx_data[0])
+                prev_rate = fx_convert(prev_rate, fx_data[6])
+            # 전월 또는 이번 달 기록이 없다면 오판에 의한 매도/매수 방지를 위해 제외합니다.
+            if curr_rate is None or prev_rate is None:
+                unknown.append(name)
+                continue
+            was_selected = prev_rate >= previous_pct
+            is_selected = curr_rate >= current_pct
+            display_name = GAME_STOCK_NAMES.get(ticker, name)
+            if was_selected and not is_selected:
+                sell.append((display_name, prev_rate))
+            elif not was_selected and is_selected:
+                buy.append((display_name, curr_rate))
+            elif was_selected and is_selected:
+                hold.append((display_name, curr_rate))
+        # 정렬은 출력의 재현성을 위해 수익률 높은 순, 동일 수익률이면 이름 순으로 고정합니다.
+        for bucket in (sell, buy, hold):
+            bucket.sort(key=lambda item: (-item[1], item[0]))
+        lines = ([f"SELL|{name}" for name, _ in sell]
+                 + [f"BUY|{name}" for name, _ in buy]
+                 + [f"HOLD|{name}" for name, _ in hold])
+        result = "\n".join(lines) + ("\n" if lines else "")
+        return result.encode("utf-8-sig"), len(sell), len(buy), len(hold), len(unknown)
+
+    rebalance_bytes, sell_count, buy_count, hold_count, missing_count = make_rebalance_lists(
+        yy, mm, fx_adjust, previous_threshold, current_threshold)
+    st.caption(
+        f"매도 {sell_count}개 · 매수 {buy_count}개 · 홀딩 {hold_count}개"
+        + (f" · 데이터 부족으로 판단 제외 {missing_count}개" if missing_count else ""))
     st.download_button(
-        "매수 종목명 TXT 다운로드",
-        data=("\n".join(buy_names) + ("\n" if buy_names else "")).encode("utf-8-sig"),
-        file_name=f"buy_list_{yy}_{mm:02d}_{min_buy_return:g}pct.txt",
+        "매도 · 매수 · 홀딩 TXT 다운로드",
+        data=rebalance_bytes,
+        file_name=f"rebalance_{yy}_{mm:02d}.txt",
         mime="text/plain", use_container_width=True,
-        disabled=not buy_names,
-        help="종목명만 한 줄에 하나씩 저장합니다. MacroDroid에서 목록으로 사용할 수 있습니다."
+        help="SELL|, BUY|, HOLD| 한 파일로 저장됩니다. 매도 → 매수 → 홀딩 순서입니다."
     )
+    st.caption("전월과 이번 달을 같은 퍼센트 기준으로 비교하지 않습니다. 실제 보유 내역과 다른 경우에는 거래 전 확인하세요.")
 
 st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
 st.markdown("<div style='font-size:11px;opacity:.58;margin-top:12px'>자료 출처: 한국은행 ECOS(원/달러) · Yahoo Finance(주식·ETF·코인·지수·금 선물) · 금(원/g)은 국제 금 선물과 원/달러 환율로 환산한 추정치<br>월간 등락률: 전월 말 종가 대비 · Made by JH</div>", unsafe_allow_html=True)
