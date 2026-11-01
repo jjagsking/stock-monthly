@@ -193,7 +193,7 @@ def fetch(year, month, category="해외"):
     months = [pd.Timestamp(year, month, 1) + pd.DateOffset(months=i) for i in range(6)]
     display_months = months + [months[0] - pd.DateOffset(months=1)]
     results = {}
-    assets = (INDICES if category == "지수" else (ALL if category == "해외" else (ETF_LIST + MARKET if category == "ETF" else (COINS + MARKET if category == "코인" else KOSPI + MARKET))))
+    assets = list(dict.fromkeys(INDICES + ALL + ETF_LIST + COINS + KOSPI + MARKET)) if category == "통합" else (INDICES if category == "지수" else (ALL if category == "해외" else (ETF_LIST + MARKET if category == "ETF" else (COINS + MARKET if category == "코인" else KOSPI + MARKET))))
     with ThreadPoolExecutor(max_workers=8) as pool:
         jobs = {pool.submit(get_one, ticker, display_months): ticker for ticker, _ in assets if True}
         for job in as_completed(jobs):
@@ -260,8 +260,8 @@ st.caption("ON은 해외 주식·미국 상장 ETF·달러 표시 코인에 적�
 
 if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or valid_date(st.query_params.get("year"), st.query_params.get("month"))):
     yy, mm = int(st.query_params["year"]), int(st.query_params["month"])
-    with st.spinner(f"{yy}년 {mm}월부터 6개월 조회 중..."):
-        months, values = fetch(yy, mm, category)
+    with st.spinner(f"{yy}년 {mm}월 전체 시장 데이터 준비 중... (첫 조회만 소요)"):
+        months, values = fetch(yy, mm, "통합")
     # 원본 수익률은 보존하고 화면/CSV 표시용 값만 환율 보정합니다.
     fx_rates = values.get("KRW=X", ([None] * 7, "환율 데이터 없음"))[0]
     def adjusted(ticker, rates):
@@ -412,18 +412,35 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
         with st.expander(f"선택 월 미조회 종목 ({len(missing)}개)"):
             for ticker, note in missing:
                 st.text(f"{ticker}: {note if note != 'Yahoo Finance' else '상장 전 또는 데이터 없음'}")
-    columns = [f"{m.year}-{m.month:02d} 등락률(%)" for m in months]
-    export = pd.DataFrame([{"티커":ticker, "종목명":name,
-                            **{columns[i]: rates[i] for i in range(len(months))},
-                            "전월 등락률(%)": rates[6],
-                            **({**{f"{months[i].year}-{months[i].month:02d} 금 기록": gold_month_status(months[i]) for i in range(len(months))},
-                                "전월 금 기록": gold_month_status(months[6])} if category == "지수" and ticker == "GOLD_KRW_G" else {}),
-                            **({f"{months[i].year}-{months[i].month:02d} 월말 환율(원)": ECOS_FX.get(months[i].strftime("%Y-%m")) for i in range(len(months))} if ticker == "KRW=X" else {}),
-                            "데이터 출처":note}
-                           for ticker, name, rates, note in ordered])
-    st.download_button(f"6개월 + 전월 CSV 다운로드 ({'환율 보정 ON' if fx_adjust else '원본'})", export.to_csv(index=False).encode("utf-8-sig"),
-                       file_name=f"monthly_{category}_{yy}_{mm:02d}_{'krw' if fx_adjust else 'original'}.csv",
-                       mime="text/csv", use_container_width=True)
+    # 다운로드는 화면의 6개월 표시와 독립적으로 선택 월 1개월만 통합합니다.
+    # 코스피·해외·코인을 모두 포함하며, 동일 티커는 시장별로 구분합니다.
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def combined_one_month_csv(y, m, currency_adjust):
+        _, shared_values = fetch(y, m, "통합")
+        fx_values = shared_values.get("KRW=X", ([None]*7, ""))[0]
+        fx_month = fx_values[0]
+        records = []
+        for group, assets_for_group in (("코스피", KOSPI), ("해외", OVERSEAS), ("코인", COINS)):
+            for ticker, name in assets_for_group:
+                rate_list, note = shared_values.get(ticker, ([None]*7, "데이터 없음"))
+                rate = rate_list[0]
+                if currency_adjust and group in ("해외", "코인") and ticker != "KRW=X":
+                    if rate is not None and fx_month is not None:
+                        rate = ((1 + rate / 100) * (1 + fx_month / 100) - 1) * 100
+                    else:
+                        rate = None
+                records.append({"조회월": f"{y}-{m:02d}", "시장": group,
+                                "티커": ticker, "종목명": name,
+                                "등락률(%)": rate, "데이터 출처": note})
+        return pd.DataFrame(records).to_csv(index=False).encode("utf-8-sig")
+
+    st.download_button(
+        f"코스피 + 해외 + 코인 · {yy}년 {mm}월 통합 CSV 다운로드",
+        data=combined_one_month_csv(yy, mm, fx_adjust),
+        file_name=f"monthly_통합_{yy}_{mm:02d}_{'krw' if fx_adjust else 'original'}.csv",
+        mime="text/csv", use_container_width=True,
+        help="선택한 1개월 등락률만 저장합니다. 화면의 6개월 표시는 유지됩니다."
+    )
 
 st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
 st.markdown("<div style='font-size:11px;opacity:.58;margin-top:12px'>자료 출처: 한국은행 ECOS(원/달러) · Yahoo Finance(주식·ETF·코인·지수·금 선물) · 금(원/g)은 국제 금 선물과 원/달러 환율로 환산한 추정치<br>월간 등락률: 전월 말 종가 대비 · Made by JH</div>", unsafe_allow_html=True)
