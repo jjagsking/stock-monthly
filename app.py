@@ -7,10 +7,10 @@ import html
 import warnings
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="월간 주식 등락률", page_icon="📈", layout="centered")
+st.set_page_config(page_title="나 혼자만의 상한가", page_icon="📈", layout="centered")
 BASE = [('KRW=X', '달러/원 환율'), ('GLD', '금(GLD ETF)'), ('BTC-USD', '비트코인'), ('AAPL', '애플'), ('MSFT', '마이크로소프트'), ('NVDA', '엔비디아'), ('AMZN', '아마존'), ('GOOGL', '알파벳'), ('META', '메타'), ('TSLA', '테슬라'), ('NFLX', '넷플릭스'), ('AMD', 'AMD'), ('INTC', '인텔'), ('AVGO', '브로드컴'), ('QCOM', '퀄컴'), ('^KS200', '코스피200'), ('^NDX', '나스닥100'), ('^GSPC', 'S&P500'), ('^DJI', '다우존스'), ('005930.KS', '삼성전자'), ('000660.KS', 'SK하이닉스')]
 EXTRA = [('PLTR', '팔란티어'), ('KO', '코카콜라'), ('SBUX', '스타벅스'), ('DDOG', '데이터독'), ('NET', '클라우드플레어'), ('TTD', '트레이드데스크'), ('ENPH', '엔페이즈'), ('LULU', '룰루레몬'), ('SPCX', '스페이스X'), ('F', '포드'), ('GM', '제너럴모터스'), ('RACE', '페라리'), ('UPS', 'UPS'), ('ISRG', '인튜이티브서지컬'), ('PANW', '팔로알토'), ('VRTX', '버텍스'), ('VZ', '버라이즌'), ('T', 'AT&T'), ('SONY', '소니'), ('TM', '토요타'), ('BIDU', '바이두'), ('MELI', '메르카도리브레'), ('EBAY', '이베이'), ('NOW', '서비스나우'), ('SHOP', '쇼피파이'), ('SPOT', '스포티파이'), ('CAT', '캐터필러'), ('MMM', '3M'), ('LMT', '록히드마틴'), ('FDX', '페덱스'), ('ABBV', '애브비'), ('UNH', '유나이티드헬스'), ('PEP', '펩시'), ('HD', '홈디포'), ('IBM', 'IBM'), ('TXN', '텍사스인스트루먼트'), ('GS', '골드만삭스'), ('MS', '모건스탠리'), ('WFC', '웰스파고'), ('XOM', '엑슨모빌'), ('CVX', '셰브론'), ('PFE', '화이자'), ('MRK', '머크'), ('QBTS', '디웨이브'), ('NKE', '나이키'), ('SFTBY', '소프트뱅크'), ('TCEHY', '텐센트'), ('QURE', '유니큐어'), ('MA', '마스터카드'), ('AXP', '아메리칸익스프레스'), ('RDDT', '레딧'), ('CRWV', '코어위브'), ('CRCL', '서클'), ('APP', '앱러빈'), ('SOUN', '사운드하운드'), ('OPEN', '오픈도어'), ('ASTS', 'AST스페이스모바일'), ('PYPL', '페이팔'), ('UPST', '업스타트'), ('SNAP', '스냅'), ('ABNB', '에어비앤비'), ('MRNA', '모더나'), ('NVAX', '노바백스'), ('TLRY', '틸레이'), ('WMT', '월마트'), ('COST', '코스트코'), ('DIS', '디즈니'), ('BA', '보잉'), ('BRK-B', '버크셔'), ('SMR', '뉴스케일파워'), ('OKLO', '오클로'), ('IONQ', '아이온큐'), ('RGTI', '리게티'), ('LUNR', '인튜이티브머신'), ('RKLB', '로켓랩'), ('DJT', '트럼프미디어'), ('LLY', '일라이릴리'), ('NVO', '노보노디스크'), ('ASML', 'ASML'), ('ARM', 'ARM'), ('CRWD', '크라우드스트라이크'), ('VST', '비스트라'), ('CEG', '컨스텔레이션에너지'), ('JPM', 'JP모건'), ('BAC', '뱅크오브아메리카'), ('PG', 'P&G'), ('JNJ', '존슨앤드존슨'), ('SNDK', '샌디스크'), ('WDC', '웨스턴디지털'), ('HIMS', '힘스앤허스'), ('VRT', '버티브'), ('ANET', '아리스타'), ('MRVL', '마벨'), ('AMAT', '어플라이드머티리얼즈'), ('GEV', 'GE버노바'), ('ORCL', '오라클'), ('CRM', '세일즈포스'), ('ADBE', '어도비'), ('MU', '마이크론'), ('COIN', '코인베이스'), ('MSTR', '마이크로스트래티지'), ('UBER', '우버'), ('MCD', '맥도날드'), ('V', '비자'), ('GME', '게임스탑'), ('AMC', 'AMC'), ('RIVN', '리비안'), ('LCID', '루시드'), ('PTON', '펠로톤'), ('ZM', '줌'), ('ROKU', '로쿠'), ('TSM', 'TSMC'), ('BB', '블랙베리'), ('NOK', '노키아'), ('CSCO', '시스코'), ('CPNG', '쿠팡'), ('PDD', '핀둬둬'), ('RIOT', '라이엇플랫폼'), ('SMCI', '슈퍼마이크로'), ('CVNA', '카바나'), ('BABA', '알리바바'), ('NIO', '니오'), ('PLUG', '플러그파워'), ('FSLR', '퍼스트솔라'), ('SPCE', '버진갤럭틱'), ('BYND', '비욘드미트'), ('SNOW', '스노우플레이크'), ('RBLX', '로블록스'), ('HOOD', '로빈후드'), ('SOFI', '소파이'), ('MARA', '마라홀딩스'), ('ACHR', '아처 에비에이션'), ('AFRM', '어펌 홀딩스'), ('AI', 'C3.ai'), ('ALAB', '아스테라 랩스'), ('AMGN', '암젠'), ('BLK', '블랙록'), ('C', '씨티그룹'), ('CCL', '카니발'), ('CELH', '셀시어스 홀딩스'), ('CMCSA', '컴캐스트'), ('CMG', '치폴레'), ('CRDO', '크레도 테크놀로지'), ('DAL', '델타항공'), ('DKNG', '드래프트킹스'), ('DOCU', '도큐사인'), ('DXCM', '덱스컴'), ('ELF', 'e.l.f. 뷰티'), ('GE', 'GE 에어로스페이스'), ('GILD', '길리어드 사이언스'), ('HON', '허니웰'), ('COHR', '코히런트(구 IIVI)'), ('INTU', '인튜이트'), ('JD', '징둥닷컴'), ('JOBY', '조비 에비에이션'), ('KLAC', 'KLA'), ('LI', '리 오토'), ('LRCX', '램리서치'), ('MDB', '몽고DB'), ('MNST', '몬스터 베버리지'), ('NEE', '넥스트에라 에너지'), ('NOC', '노스럽 그러먼'), ('NTDOY', '닌텐도 ADR'), ('NU', '누 홀딩스'), ('O', '리얼티 인컴'), ('ON', '온세미'), ('OXY', '옥시덴탈'), ('BKNG', '부킹홀딩스(구 PCLN)'), ('PM', '필립모리스'), ('REGN', '리제네론'), ('RTX', 'RTX'), ('SCHW', '찰스슈왑'), ('SE', '씨 리미티드'), ('XYZ', '블록(구 SQ)'), ('TGT', '타깃'), ('TMO', '써모 피셔'), ('TTWO', '테이크투'), ('TWLO', '트윌리오'), ('U', '유니티'), ('XPEV', '샤오펑'), ('ZS', '지스케일러')]
-MARKET = BASE[:2]
+MARKET = [BASE[0]]  # 상단 시장지표: 미국달러만
 OVERSEAS = [(t,n) for t,n in BASE[2:] + EXTRA if t not in ("005930.KS", "000660.KS", "BTC-USD", "^KS200", "^NDX", "^GSPC", "^DJI")]
 ALL = MARKET + OVERSEAS
 COINS = [('BTC-USD', '비트코인'), ('ETH-USD', '이더리움'), ('XRP-USD', '리플'), ('SOL-USD', '솔라나'), ('ADA-USD', '에이다'), ('DOGE-USD', '도지코인'), ('DOT-USD', '폴카닷'), ('AVAX-USD', '아발란체'), ('LINK-USD', '체인링크'), ('TRX-USD', '트론'), ('BCH-USD', '비트코인캐시'), ('SAND-USD', '샌드박스'), ('ATOM-USD', '코스모스'), ('NEAR-USD', '니어'), ('ETC-USD', '이더리움클래식'), ('ALGO-USD', '알고랜드'), ('SUI-USD', '수이'), ('APT-USD', '앱토스'), ('SEI-USD', '세이'), ('STX-USD', '스택스'), ('JUP-USD', '주피터'), ('ONDO-USD', '온도')]
@@ -205,7 +205,11 @@ def fetch(year, month, category="해외"):
             results[ticker] = (values, note)
     return display_months, results
 
-st.title("📈 월간 주식 등락률")
+st.markdown("""<div style="padding:14px 0 8px;border-bottom:1px solid rgba(128,128,128,.25);margin-bottom:14px">
+<div style="font-size:.70rem;letter-spacing:.19em;color:#9b814c;font-weight:700">JH MARKET ANALYTICS</div>
+<div style="font-size:2rem;font-weight:800;line-height:1.45">📈 나 혼자만의 상한가</div>
+<div style="font-size:.85rem;opacity:.7">시장을 읽고, 수익의 흐름을 발견하다. <span style="float:right;font-weight:600">Made by JH</span></div>
+</div>""", unsafe_allow_html=True)
 TABS = ["코스피", "해외", "코인", "ETF", "지수"]
 requested_tab = st.query_params.get("tab", "해외")
 if requested_tab not in TABS:
@@ -214,7 +218,7 @@ category = st.radio("자산 분류", TABS, index=TABS.index(requested_tab), hori
 if category != requested_tab:
     st.query_params["tab"] = category
 if category == "해외":
-    st.caption(f"상단 달러·금 기준 지표 · 해외 전체 종목 등락률순 정렬 · 6개월 + 전월")
+    st.caption(f"상단 달러 기준 지표 · 해외 전체 종목 등락률순 정렬 · 6개월 + 전월")
 elif category == "ETF":
     st.caption(f"ETF {len(ETF_LIST)}개 · 월별 등락률순 정렬 · 6개월 + 전월")
 elif category == "지수":
@@ -332,9 +336,9 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
 .market-table thead th{background:#f1f2f5}</style>'''
                 + '<div class="market-wrap"><table class="market-table"><thead><tr><th>기준 지표</th>'
                 + heading + '</tr></thead><tbody>' + ''.join(body) + '</tbody></table></div>')
-    st.markdown("#### 🌐 시장 기준 지표 (달러 · 금)")
+    st.markdown("#### 🌐 시장지표 · 미국달러 (USD/KRW)")
     components.html(build_market_table(), height=160, scrolling=False)
-    st.caption("달러·금은 원본 월봉을 유지하며, 환율 보정 ON/OFF와 무관하게 표시됩니다.")
+    st.caption("달러/원은 한국은행 ECOS 월말 환율 기준이며 환율 보정 ON/OFF와 무관합니다.")
     st.markdown(f"#### {category} 월봉 등락률 · {('원화 기준' if category in ('코스피', '지수') else ('원화 환산' if fx_adjust else '원본 달러 기준'))}")
     html_rows = []
     for ticker, name, rates, note in ordered:
@@ -352,7 +356,7 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
                 if fx_price is not None:
                     fx_title = f' title="월말 환율: {fx_price:,.2f}원 (한국은행 ECOS)"'
                     fx_html = f'<span class="fx-price">{fx_price:,.2f}원</span>'
-            if ticker == "GLD":
+            if category == "지수" and ticker == "GOLD_KRW_G":
                 status = gold_month_status(months[idx])
                 status_class = {"상": "gold-up", "하": "gold-down", "미": "gold-missing"}[status]
                 gold_html = f'<span class="gold-tag {status_class}">({status})</span>'
@@ -413,7 +417,7 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
                             **{columns[i]: rates[i] for i in range(len(months))},
                             "전월 등락률(%)": rates[6],
                             **({**{f"{months[i].year}-{months[i].month:02d} 금 기록": gold_month_status(months[i]) for i in range(len(months))},
-                                "전월 금 기록": gold_month_status(months[6])} if ticker == "GLD" else {}),
+                                "전월 금 기록": gold_month_status(months[6])} if category == "지수" and ticker == "GOLD_KRW_G" else {}),
                             **({f"{months[i].year}-{months[i].month:02d} 월말 환율(원)": ECOS_FX.get(months[i].strftime("%Y-%m")) for i in range(len(months))} if ticker == "KRW=X" else {}),
                             "데이터 출처":note}
                            for ticker, name, rates, note in ordered])
@@ -422,4 +426,4 @@ if category in ("해외", "ETF", "코스피", "코인", "지수") and (submit or
                        mime="text/csv", use_container_width=True)
 
 st.caption("선택 연월은 웹주소에 저장됩니다. 그 주소를 즐겨찾기하면 다음 방문에도 같은 연월로 열립니다.")
-st.caption("해외: 달러/원 한국은행 ECOS · 코스피200 FinanceDataReader · 금 GLD ETF(달러 기준) | 코스피·ETF: Yahoo Finance 월말 종가 기준")
+st.markdown("<div style='font-size:11px;opacity:.58;margin-top:12px'>자료 출처: 한국은행 ECOS(원/달러) · Yahoo Finance(주식·ETF·코인·지수·금 선물) · 금(원/g)은 국제 금 선물과 원/달러 환율로 환산한 추정치<br>월간 등락률: 전월 말 종가 대비 · Made by JH</div>", unsafe_allow_html=True)
